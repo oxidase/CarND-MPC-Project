@@ -1,0 +1,101 @@
+* Kinematic Model
+
+State vector of the model
+\[
+x,y,\psi,v
+\]
+where $x$ and $y$ are the global coordinates of the characteristic point,
+$\psi$ is the orientation of the car, $v$ is the velocity
+
+Actuators
+\[
+\delta, a
+\]
+
+This reduces the vehicle to two actuators, which we'll denote as $\delta$ for steering angle and $a$ for acceleration (throttle/brake combined).
+
+
+Here it is:
+\[
+\begin{array}{rcl}
+x_{t+1}&=&\displaystyle x_t+v_t \cos(\psi_t) dt\\
+y_{t+1}&=&\displaystyle y_t+v_t \sin(\psi_t) dt\\
+\psi_{t+1}&=&\displaystyle \psi_t+\frac{v_t}{L_f} \tan{\delta_t} dt\\
+v_{t+1}&=&\displaystyle v_t+a_t∗dt
+\end{array}
+\]
+
+* Kinematic model with errors
+
+
+The state is $[x,y,\psi,v,cte,e_{\psi}]$
+
+
+
+* Model realization
+https://github.com/udacity/CarND-MPC-Quizzes/blob/master/mpc_to_line/solution/MPC.cpp
+
+* One step
+
+** Received step data
+#+begin_src R :session first_step :file images/pts.png :results output graphics
+ptsx <- c(-32.161729999999999, -43.491729999999997, -61.090000000000003, -78.291719999999998, -93.050020000000004, -107.7717)
+ptsy <- c(113.361, 105.941, 92.884990000000002, 78.731020000000001, 65.34102, 50.57938)
+
+px <- -40.619999999999997
+py <- 108.73
+psi <- 3.7336510000000001
+v <- 0.43800909999999998
+
+plot(ptsx, ptsy, 'b')
+arrows(px, py, px + 10 * cos(psi), py + 10 * sin(psi), col='red')
+#+end_src
+
+#+results:
+[[file:images/pts.png]]
+** Transformed points to the local vehicle's reference systems
+#+begin_src R :session first_step :file images/val.png :results output graphics
+xy <- mapply(function(x, y) c(x*cos(psi) + y*sin(psi), -x*sin(psi) + y*cos(psi)), x = ptsx - px, y = ptsy - py)
+print (xy)
+plot(xy[1,], xy[2,], 'b', ylim=c(-1, 12))
+arrows(0, 0, 10, 0, col='red')
+#+end_src
+
+#+results:
+[[file:images/val.png]]
+
+#+begin_src R :session first_step :results output
+paste(c("X: ", xy[1,]) ,collapse=' ')
+paste(c("Y: ", xy[2,]) ,collapse=' ')
+#+end_src
+
+#+results:
+: [1] "X:  -9.60304259089076 3.93940137227534 25.8285057832489 48.0012942525802 67.7201992157065 88.1741885507836"
+: [1] "Y:  0.877533697608325 0.71166777432672 1.724392909049 3.8695011146151 6.7442717046266 10.7776571055713"
+
+** Fitting a cubic polynomial
+
+#+begin_src R :session first_step :results output
+coeffs <- lm(formula = xy[2,] ~ xy[1,] + I(xy[1,]^2) + I(xy[1,]^3))
+print(coeffs)
+track <- function(x) coef(coeffs)[1] + coef(coeffs)[2] * x + coef(coeffs)[3] * x^2 + coef(coeffs)[4] * x^3
+#+end_src
+
+#+results:
+:
+: Call:
+: lm(formula = xy[2, ] ~ xy[1, ] + I(xy[1, ]^2) + I(xy[1, ]^3))
+:
+: Coefficients:
+:  (Intercept)       xy[1, ]  I(xy[1, ]^2)  I(xy[1, ]^3)
+:    7.443e-01     2.145e-03     1.351e-03    -9.852e-07
+
+#+begin_src R :session first_step :file images/poly.png :results output graphics
+plot(xy[1,], xy[2,], 'b', ylim=c(-1, 12))
+xx <- seq(min(xy[1,]), max(xy[1,]), length=50)
+lines(xx, lapply(xx, track), type="l", col="red")
+arrows(0, 0, 10, 0, col='red')
+#+end_src
+
+#+results:
+[[file:images/poly.png]]
