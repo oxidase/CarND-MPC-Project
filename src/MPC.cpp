@@ -21,7 +21,7 @@ double dt = 0.05;
 // This is the length from front to CoG that has a similar radius.
 const double Lf = 2.67;
 
-const double ref_v = 20; // in m/s
+const double ref_v = 32; // in m/s
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should to establish
@@ -59,14 +59,14 @@ public:
         // Minimize the actuator values
         for (int i = 0; i < N - 1; ++i)
         {
-            fg[0] += 1000 * CppAD::pow(vars[delta_start + i], 2);
-            fg[0] += 50 * CppAD::pow(vars[a_start], 2);
+            fg[0] += 100 * CppAD::pow(vars[delta_start + i], 2);
+            fg[0] += 5 * CppAD::pow(vars[a_start], 2);
         }
 
         // Minimize the sudden change
         for (int i = 0; i < N - 2; ++i)
         {
-            fg[0] += 50000 * CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
+            fg[0] += 5000000 * CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
             fg[0] +=  0 * CppAD::pow(vars[a_start + i +1] - vars[a_start], 2);
         }
 
@@ -144,7 +144,7 @@ public:
 MPC::MPC() {}
 MPC::~MPC() {}
 
-std::tuple<double, double, std::vector<double>, std::vector<double>, double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs)
+std::tuple<double, double, std::vector<double>, std::vector<double>, double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs, double maxx)
 {
     bool ok = true;
     typedef CPPAD_TESTVECTOR(double) Dvector;
@@ -197,12 +197,21 @@ std::tuple<double, double, std::vector<double>, std::vector<double>, double> MPC
         vars_upperbound[i] = +deg2rad(25);
     }
 
-    // Acceleration/decceleration upper and lower limits.
-    // NOTE: Feel free to change this to something else.
+    // Acceleration/deceleration upper and lower limits.
+    auto poly = [&coeffs](double x) { return coeffs[0] + coeffs[1] * x + coeffs[2] * x * x + coeffs[3] * x * x * x; };
+    std:size_t ncross = 0, nsample = 1000;
+    double prevy = poly(0);
+    for (std::size_t i = 1; i < nsample; ++i)
+    {
+        double y = maxx * i / nsample;
+        ncross += (prevy * y <= 0.);
+        prevy = y;
+    }
+
     for (std::size_t i = a_start; i < a_start + N - 1; ++i)
     {
         vars_lowerbound[i] = -1.0;
-        vars_upperbound[i] = +1.0;
+        vars_upperbound[i] = +1.0 / (3 * ncross + 1);
     }
 
     // Lower and upper limits for the constraints
@@ -266,7 +275,7 @@ std::tuple<double, double, std::vector<double>, std::vector<double>, double> MPC
 
     // Cost
     auto cost = solution.obj_value;
-    std::cerr << "Cost " << cost << " " << solution.x[delta_start] << " " << solution.x[a_start] << std::endl;
+    std::cerr << "Cost " << cost << " " << solution.x[delta_start] << " " << solution.x[a_start] << " " << maxx << " " << ncross << std::endl;
 
     std::vector<double> mpc_x_vals, mpc_y_vals;
     for (std::size_t i = 0; i < N; ++i)

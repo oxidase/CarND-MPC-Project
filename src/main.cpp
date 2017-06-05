@@ -118,7 +118,7 @@ int main() {
                                 double cost;
                                 std::vector<double> mpc_x_vals, mpc_y_vals;
 
-                                std::tie(steer_value, throttle_value, mpc_x_vals, mpc_y_vals, cost) = mpc.Solve(state, coeffs);
+                                std::tie(steer_value, throttle_value, mpc_x_vals, mpc_y_vals, cost) = mpc.Solve(state, coeffs, x_vals.back());
 
                                 json msgJson;
                                 // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
