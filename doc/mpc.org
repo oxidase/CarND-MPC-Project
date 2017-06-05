@@ -113,12 +113,14 @@ arrows(0, 0, 10, 0, col='red')
 
 ** First try with $v_{\text{ref}}=20$ m/s and $V_{\text{max}}=26.3$ mph
 
-Cost function
+In the first both activation values and changes in activation values are penalized with weight values 100, so
+the cost function is
 \[
 C = \left[\sum_{i=0}^N cte_i^2 + e\psi_i^2 + (v_i-v_{\text{ref}})^2\right]  + 100 \left[ \sum_{i=0}^{N-1} \delta_i^2 + a_i^2 \right] + 100 \left[ \sum_{i=0}^{N-2} (\delta_{i+1}-\delta_i)^2 + (a_{i+1}-a_{i})^2 \right]
 \]
 
 
+The track results is
 #+begin_src gnuplot :exports both :file images/first_track.png
 reset
 set terminal png size 1600,1000
@@ -133,7 +135,7 @@ plot 'data/first.data' using ($1):($2) with lines lw 5 title 'Road', \
 [[file:images/track1.png]]
 
 
-Vehicle's speed settled at $\approx 26.3$ mph.
+Vehicle's speed is settled at $\approx 26.3$ mph.
 #+begin_src gnuplot :exports both :file images/first_speed.png
 reset
 set terminal png size 640,480
@@ -159,7 +161,7 @@ plot 'data/first.data' using 0:($5) with lines title 'Cost'
 #+end_src
 
 #+results:
-[[file:images/cost1.png]]
+[[file:images/first_cost.png]]
 
 so acceleration value $a$ is almost constant at $0.225$
 #+begin_src gnuplot :exports both :file images/first_actuators.png
@@ -176,4 +178,73 @@ plot 'data/first.data' using 0:($6) with lines title 'delta', \
 #+results:
 [[file:images/actuators1.png]]
 
-Link to video file https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/first.mp4]]
+[[https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/first.mp4][Link to video file]]
+
+
+** Second try with $v_{\text{ref}}=20$ m/s
+
+In this try change in the acceleration is not penalized but change of the steering angle is penalized at most,
+also error in the velocity is penalized less than the cross-track error and the error in $\psi$,  so
+the cost function is
+\[
+C = \left[\sum_{i=0}^N cte_i^2 + e\psi_i^2 + 10^{-1}(v_i-v_{\text{ref}})^2\right]  + \left[ \sum_{i=0}^{N-1} 1000 \delta_i^2 + 50 a_i^2 \right] + 50000 \sum_{i=0}^{N-2} (\delta_{i+1}-\delta_i)^2
+\]
+
+The track result
+#+begin_src gnuplot :exports both :file images/second_track.png
+reset
+set terminal png size 1600,1000
+set title "Track"
+set xlabel "x"
+set xlabel "y"
+plot 'data/first.data' using ($1):($2) with lines lw 5 title 'Road', \
+     'data/first.data' using 1:2:($4*cos($3)):($4*sin($3)) with vectors head filled lt 2 title 'Velocity'
+#+end_src
+
+#+results:
+[[file:images/second_track.png]]
+
+
+Vehicle's speed oscillates near the reference value $\approx 45$ mph:
+#+begin_src gnuplot :exports both :file images/second_speed.png
+reset
+set terminal png size 640,480
+set title "Speed"
+set xlabel "Step"
+set yrange [0:60]
+set ytics 0,5,60
+plot 'data/second.data' using 0:($4*3600/1609.34) with lines title 'V, mph'
+#+end_src
+
+#+results:
+[[file:images/second_speed.png]]
+
+The cost function goes down and has multiple maxima at turns
+#+begin_src gnuplot :exports both :file images/second_cost.png
+reset
+set terminal png size 640,480
+set title "Cost"
+set xlabel "Step"
+set yrange [0:1500]
+set ytics 0,500,1500
+plot 'data/second.data' using 0:($5) with lines title 'Cost'
+#+end_src
+
+#+results:
+[[file:images/second_cost.png]]
+
+Acceleration value $a$ shows a bang-bang controller behavior
+#+begin_src gnuplot :exports both :file images/second_actuators.png
+reset
+set terminal png size 640,480
+set title "Actuators"
+set xlabel "Step"
+set yrange [-2:2]
+set ytics -1,0.5,1
+plot 'data/second.data' using 0:($6) with lines title 'delta', \
+     'data/second.data' using 0:($7) with lines title 'a'
+#+end_src
+
+#+results:
+[[file:images/second_actuators.png]]
+[[https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/second.mp4][Link to video file]]

@@ -6,8 +6,8 @@
 using CppAD::AD;
 
 // Set the timestep length and duration
-size_t N = 20;
-double dt = 0.1;
+size_t N = 40;
+double dt = 0.05;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -51,23 +51,23 @@ public:
         // Reference State Cost
         for (int i = 0; i < N; ++i)
         {
-            fg[0] += CppAD::pow(vars[cte_start + i], 2);
-            fg[0] += CppAD::pow(vars[epsi_start + i], 2);
-            fg[0] += CppAD::pow(vars[v_start+ i] - ref_v, 2);
+            fg[0] += 1 * CppAD::pow(vars[cte_start + i], 2);
+            fg[0] += 1 * CppAD::pow(vars[epsi_start + i], 2);
+            fg[0] += 1e-1 * CppAD::pow(vars[v_start+ i] - ref_v, 2);
         }
 
         // Minimize the actuator values
         for (int i = 0; i < N - 1; ++i)
         {
-            fg[0] += 100 * CppAD::pow(vars[delta_start + i], 2);
-            fg[0] += 100 * CppAD::pow(vars[a_start], 2);
+            fg[0] += 1000 * CppAD::pow(vars[delta_start + i], 2);
+            fg[0] += 50 * CppAD::pow(vars[a_start], 2);
         }
 
         // Minimize the sudden change
         for (int i = 0; i < N - 2; ++i)
         {
-            fg[0] += 100 * CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
-            fg[0] += 100 * CppAD::pow(vars[a_start + i +1] - vars[a_start], 2);
+            fg[0] += 50000 * CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
+            fg[0] +=  0 * CppAD::pow(vars[a_start + i +1] - vars[a_start], 2);
         }
 
         //
