@@ -79,7 +79,6 @@ int main() {
                     // The 4 signifies a websocket message
                     // The 2 signifies a websocket event
                     std::string sdata = std::string(data).substr(0, length);
-                    std::cout << sdata << std::endl;
                     if (sdata.size() > 2 && sdata[0] == '4' && sdata[1] == '2')
                     {
                         std::string s = hasData(sdata);
@@ -116,9 +115,10 @@ int main() {
 
                                 double steer_value;
                                 double throttle_value;
+                                double cost;
                                 std::vector<double> mpc_x_vals, mpc_y_vals;
 
-                                std::tie(steer_value, throttle_value, mpc_x_vals, mpc_y_vals) = mpc.Solve(state, coeffs);
+                                std::tie(steer_value, throttle_value, mpc_x_vals, mpc_y_vals, cost) = mpc.Solve(state, coeffs);
 
                                 json msgJson;
                                 // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
@@ -139,9 +139,9 @@ int main() {
                                 msgJson["next_x"] = x_vals;
                                 msgJson["next_y"] = y_vals;
 
-
+                                std::cout << px << " " << py << " " << psi << " " << v << " "  << cost << " " << steer_value << " " << throttle_value << std::endl;
                                 auto msg = "42[\"steer\"," + msgJson.dump() + "]";
-                                std::cout << msg << std::endl;
+                                //std::cout << msg << std::endl;
                                 // Latency
                                 // The purpose is to mimic real driving conditions where
                                 // the car does actuate the commands instantly.
@@ -177,13 +177,13 @@ int main() {
                     });
 
     h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
-                       std::cout << "Connected!!!" << std::endl;
+                       std::cerr << "Connected!!!" << std::endl;
                    });
 
     h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code,
                            char *message, size_t length) {
                           ws.close();
-                          std::cout << "Disconnected" << std::endl;
+                          std::cerr << "Disconnected" << std::endl;
                       });
 
     int port = 4567;

@@ -21,7 +21,7 @@ double dt = 0.1;
 // This is the length from front to CoG that has a similar radius.
 const double Lf = 2.67;
 
-const double ref_v = 40; // in m/s
+const double ref_v = 20; // in m/s
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should to establish
@@ -262,7 +262,7 @@ std::tuple<double, double, std::vector<double>, std::vector<double>, double> MPC
     // Check some of the solution values
     ok &= solution.status == CppAD::ipopt::solve_result<Dvector>::success;
     if (!ok)
-        return {0., 0., std::vector<double>(), std::vector<double>()};
+        return {0., 0., std::vector<double>(), std::vector<double>(), std::numeric_limits<double>::quiet_NaN()};
 
     // Cost
     auto cost = solution.obj_value;

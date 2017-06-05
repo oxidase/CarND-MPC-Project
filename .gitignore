@@ -4,3 +4,6 @@ tags
 .editorconfig
 .DS_Store
 doc/ltximg
+doc/video/*.ogv
+doc/.auctex-auto/
+doc/*.tex

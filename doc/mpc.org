@@ -1,3 +1,11 @@
+#+title: CarND-MPC-Project project
+#+author: Michael Krasnyk
+#+html_link_home:
+#+html_head: <link rel="stylesheet" type="text/css" href="http://www.star.bris.ac.uk/bjm/css/bjm.css" />
+#+html_link_up:
+#+html_mathjax:
+#+latex_header: \usepackage{fullpage}
+
 * Kinematic Model
 
 State vector of the model
@@ -20,8 +28,8 @@ Here it is:
 \begin{array}{rcl}
 x_{t+1}&=&\displaystyle x_t+v_t \cos(\psi_t) dt\\
 y_{t+1}&=&\displaystyle y_t+v_t \sin(\psi_t) dt\\
-\psi_{t+1}&=&\displaystyle \psi_t+\frac{v_t}{L_f} \tan{\delta_t} dt\\
-v_{t+1}&=&\displaystyle v_t+a_t∗dt
+\psi_{t+1}&=&\displaystyle \psi_t+\frac{v_t}{L_f} \delta_t dt\\
+v_{t+1}&=&\displaystyle v_t+a_t dt
 \end{array}
 \]
 
@@ -99,3 +107,73 @@ arrows(0, 0, 10, 0, col='red')
 
 #+results:
 [[file:images/poly.png]]
+
+
+* Results
+
+** First try with $v_{\text{ref}}=20$ m/s and $V_{\text{max}}=26.3$ mph
+
+Cost function
+\[
+C = \left[\sum_{i=0}^N cte_i^2 + e\psi_i^2 + (v_i-v_{\text{ref}})^2\right]  + 100 \left[ \sum_{i=0}^{N-1} \delta_i^2 + a_i^2 \right] + 100 \left[ \sum_{i=0}^{N-2} (\delta_{i+1}-\delta_i)^2 + (a_{i+1}-a_{i})^2 \right]
+\]
+
+
+#+begin_src gnuplot :exports both :file images/first_track.png
+reset
+set terminal png size 1600,1000
+set title "Track"
+set xlabel "x"
+set xlabel "y"
+plot 'data/first.data' using ($1):($2) with lines lw 5 title 'Road', \
+     'data/first.data' using 1:2:($4*cos($3)):($4*sin($3)) with vectors head filled lt 2 title 'Velocity'
+#+end_src
+
+#+results:
+[[file:images/track1.png]]
+
+
+Vehicle's speed settled at $\approx 26.3$ mph.
+#+begin_src gnuplot :exports both :file images/first_speed.png
+reset
+set terminal png size 640,480
+set title "Speed"
+set xlabel "Step"
+set yrange [0:30]
+set ytics 0,5,30
+plot 'data/first.data' using 0:($4*3600/1609.34) with lines title 'V, mph'
+#+end_src
+
+#+results:
+[[file:images/speed1.png]]
+
+and the cost function at $\approx 1300$
+#+begin_src gnuplot :exports both :file images/first_cost.png
+reset
+set terminal png size 640,480
+set title "Cost"
+set xlabel "Step"
+set yrange [0:8000]
+set ytics 0,2000,8000
+plot 'data/first.data' using 0:($5) with lines title 'Cost'
+#+end_src
+
+#+results:
+[[file:images/cost1.png]]
+
+so acceleration value $a$ is almost constant at $0.225$
+#+begin_src gnuplot :exports both :file images/first_actuators.png
+reset
+set terminal png size 640,480
+set title "Actuators"
+set xlabel "Step"
+set yrange [-1:1]
+set ytics -1,0.5,1
+plot 'data/first.data' using 0:($6) with lines title 'delta', \
+     'data/first.data' using 0:($7) with lines title 'a'
+#+end_src
+
+#+results:
+[[file:images/actuators1.png]]
+
+Link to video file https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/first.mp4]]
