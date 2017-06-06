@@ -12,18 +12,16 @@ State vector of the model
 \[
 x,y,\psi,v
 \]
-where $x$ and $y$ are the global coordinates of the characteristic point,
-$\psi$ is the orientation of the car, $v$ is the velocity
+where $x$ and $y$ are the coordinates of the vehicle in local coordinate,
+$\psi$ is the orientation of the car, $v$ is the velocity.
 
-Actuators
+Vehicle model has two actuators
 \[
 \delta, a
 \]
+with $\delta$ a steering angle and $a$ an acceleration (throttle/brake combined).
 
-This reduces the vehicle to two actuators, which we'll denote as $\delta$ for steering angle and $a$ for acceleration (throttle/brake combined).
-
-
-Here it is:
+Model difference equation:
 \[
 \begin{array}{rcl}
 x_{t+1}&=&\displaystyle x_t+v_t \cos(\psi_t) dt\\
@@ -33,20 +31,76 @@ v_{t+1}&=&\displaystyle v_t+a_t dt
 \end{array}
 \]
 
-* Kinematic model with errors
+* Kinematic model with errors (from lecture)
+
+The state of the model
+\[
+x,y,\psi,v,cte,e\psi
+\]
+is extended with $cte$ — the cross-track error and $e\psi$ — the orientation error.
+
+** Cross Track Error
+
+The error between the center of the road and the vehicle's position is the cross track error:
+\[
+cte_{t+1}=cte_t + v_t \sin(e\psi_t) dt
+\]
+
+In this case $cte_t$ can be expressed as the difference between the reference line and the
+current vehicle position $y$. Assuming the reference line is a polynomial $f(x)$:
+\[
+cte_t=f(x_t)-y_t
+\]
+
+If we substitute $cte_t$ back into the original equation the result is:
+\[
+cte_{t+1}=f(x_t)-y_t + v_t \sin(e\psi_t) dt
+\]
+
+This can be broken up into two parts:
+- $f(x_t)-y_t$ being the current cross track error
+- $v_t \sin(e\psi_t) dt$ being the change in error caused by the vehicle's movement
+
+** Orientation Error
+
+The orientation error:
+\[
+e\psi_{t+1}=e\psi_t+ \frac{v_t}{L_f} \delta_t dt
+\]
+The update rule is essentially the same as $\psi$.
+
+$e\psi_t$ is the desired orientation subtracted from the current orientation:
+\[
+e\psi_t=\psi_t−\psi{des}_{t}
+\]
+where $\psi{des}_t$ (desired $\psi$) and can be calculated as the tangential
+angle of the polynomial $f(x)$ evaluated at $x_t$, as $\arctan(f'(x_t))$
+with $f'$ is the derivative of the polynomial.
+\[
+e\psi_{t+1}=\psi_t-\psi{des}_t + \frac{v_t}{L_f} \delta_t dt
+\]
+Similarly to the cross track error this can be interpreted as two parts:
+- $\psi_t-\psi{des}_t$ being the current orientation error
+- $\frac{v_t}{L_f} \delta_t dt$ being the change in error caused by the vehicle's movement
+
+* Model implementation
+The vehicle model is implemented in https://github.com/udacity/CarND-MPC-Quizzes/blob/master/mpc_to_line/solution/MPC.cpp
+
+Number of forward steps is $N = \{20, 40\}$, the time step $dt = 0.05$. The velocity reference value is $v_{\text{ref}}=\{20, 32\}$ m/s.
+The model implements the cost function
+\[
+C = \left[\sum_{i=0}^N w_{cte} cte_i^2 + w_{e\psi} e\psi_i^2 + w_v (v_i-v_{\text{ref}})^2\right]  + \left[ \sum_{i=0}^{N-1} w_{\delta} \delta_i^2 + w_a a_i^2 \right] + \left[ \sum_{i=0}^{N-2} w_{\delta'}(\delta_{i+1}-\delta_i)^2 + w_{a'}(a_{i+1}-a_{i})^2 \right]
+\]
+with different weight values $w_{.}$ and difference equations at $N$ time points as optimization equality constraints.
+The optimizer is IPOPT with CppAD symbolic differentiation procedure.
+The state variables are unbounded, steering angles $\delta$ lies in range [-25, 25] degrees,
+acceleration values are in range [-1,1] or [-1,0.25] depending on the road complexity.
 
 
-The state is $[x,y,\psi,v,cte,e_{\psi}]$
-
-
-
-* Model realization
-https://github.com/udacity/CarND-MPC-Quizzes/blob/master/mpc_to_line/solution/MPC.cpp
-
-* One step
+* One step calculation of the reference track
 
 ** Received step data
-#+begin_src R :session first_step :file images/pts.png :results output graphics
+#+begin_src R :session first_step :file images/pts.png :results output graphics :exports both
 ptsx <- c(-32.161729999999999, -43.491729999999997, -61.090000000000003, -78.291719999999998, -93.050020000000004, -107.7717)
 ptsy <- c(113.361, 105.941, 92.884990000000002, 78.731020000000001, 65.34102, 50.57938)
 
@@ -62,7 +116,7 @@ arrows(px, py, px + 10 * cos(psi), py + 10 * sin(psi), col='red')
 #+results:
 [[file:images/pts.png]]
 ** Transformed points to the local vehicle's reference systems
-#+begin_src R :session first_step :file images/val.png :results output graphics
+#+begin_src R :session first_step :file images/val.png :results output graphics :exports both
 xy <- mapply(function(x, y) c(x*cos(psi) + y*sin(psi), -x*sin(psi) + y*cos(psi)), x = ptsx - px, y = ptsy - py)
 print (xy)
 plot(xy[1,], xy[2,], 'b', ylim=c(-1, 12))
@@ -72,7 +126,7 @@ arrows(0, 0, 10, 0, col='red')
 #+results:
 [[file:images/val.png]]
 
-#+begin_src R :session first_step :results output
+#+begin_src R :session first_step :results output :exports both
 paste(c("X: ", xy[1,]) ,collapse=' ')
 paste(c("Y: ", xy[2,]) ,collapse=' ')
 #+end_src
@@ -83,7 +137,7 @@ paste(c("Y: ", xy[2,]) ,collapse=' ')
 
 ** Fitting a cubic polynomial
 
-#+begin_src R :session first_step :results output
+#+begin_src R :session first_step :results output :exports both
 coeffs <- lm(formula = xy[2,] ~ xy[1,] + I(xy[1,]^2) + I(xy[1,]^3))
 print(coeffs)
 track <- function(x) coef(coeffs)[1] + coef(coeffs)[2] * x + coef(coeffs)[3] * x^2 + coef(coeffs)[4] * x^3
@@ -98,7 +152,7 @@ track <- function(x) coef(coeffs)[1] + coef(coeffs)[2] * x + coef(coeffs)[3] * x
 :  (Intercept)       xy[1, ]  I(xy[1, ]^2)  I(xy[1, ]^3)
 :    7.443e-01     2.145e-03     1.351e-03    -9.852e-07
 
-#+begin_src R :session first_step :file images/poly.png :results output graphics
+#+begin_src R :session first_step :file images/poly.png :results output graphics :exports both
 plot(xy[1,], xy[2,], 'b', ylim=c(-1, 12))
 xx <- seq(min(xy[1,]), max(xy[1,]), length=50)
 lines(xx, lapply(xx, track), type="l", col="red")
@@ -109,7 +163,7 @@ arrows(0, 0, 10, 0, col='red')
 [[file:images/poly.png]]
 
 
-* Results
+* Simulation results
 
 ** First try with $v_{\text{ref}}=20$ m/s and $V_{\text{max}}=26.3$ mph
 
@@ -131,8 +185,6 @@ plot 'data/first.data' using ($1):($2) with lines lw 5 title 'Road', \
      'data/first.data' using 1:2:($4*cos($3)):($4*sin($3)) with vectors head filled lt 2 title 'Velocity'
 #+end_src
 
-#+results:
-[[file:images/track1.png]]
 
 
 Vehicle's speed is settled at $\approx 26.3$ mph.
@@ -181,7 +233,7 @@ plot 'data/first.data' using 0:($6) with lines title 'delta', \
 [[https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/first.mp4][Link to video file]]
 
 
-** Second try with $v_{\text{ref}}=20$ m/s
+** Second try with $v_{\text{ref}}=20$ m/s and average speed 45 mph
 
 In this try change in the acceleration is not penalized but change of the steering angle is penalized at most,
 also error in the velocity is penalized less than the cross-track error and the error in $\psi$,  so
@@ -248,15 +300,19 @@ plot 'data/second.data' using 0:($6) with lines title 'delta', \
 #+results:
 [[file:images/second_actuators.png]]
 
+[[https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/second.mp4][Link to video file]]
 
-** Third try with $v_{\text{ref}}=30$ m/s
+
+** Third try with $v_{\text{ref}}=32$ m/s and top speed $72$ mph
 
 In this try change in the acceleration is not penalized but change of the steering angle is penalized at most,
-also error in the velocity is penalized less than the cross-track error and the error in $\psi$,  so
-the cost function is
+so the cost function is
 \[
-C = \left[\sum_{i=0}^N cte_i^2 + e\psi_i^2 + 10^{-1}(v_i-v_{\text{ref}})^2\right]  + \left[ \sum_{i=0}^{N-1} 1000 \delta_i^2 + 50 a_i^2 \right] + 50000 \sum_{i=0}^{N-2} (\delta_{i+1}-\delta_i)^2
+C = \left[\sum_{i=0}^N cte_i^2 + e\psi_i^2 + 10^{-1}(v_i-v_{\text{ref}})^2\right]  + \left[ \sum_{i=0}^{N-1} 100 \delta_i^2 + 5 a_i^2 \right] + 5000000 \sum_{i=0}^{N-2} (\delta_{i+1}-\delta_i)^2
 \]
+
+Also to prevent acceleration in turns the positive acceleration constraint is
+set to 0.25 if the tracks has S-shape turns in the time horizon.
 
 The track result
 #+begin_src gnuplot :exports both :file images/third_track.png
@@ -280,7 +336,7 @@ set terminal png size 640,480
 set title "Speed"
 set xlabel "Step"
 set yrange [0:80]
-set ytics 0,5,80
+set ytics 0,10,80
 plot 'data/third.data' using 0:($4*3600/1609.34) with lines title 'V, mph'
 #+end_src
 
@@ -293,8 +349,8 @@ reset
 set terminal png size 640,480
 set title "Cost"
 set xlabel "Step"
-set yrange [0:1500]
-set ytics 0,500,1500
+set yrange [0:4000]
+set ytics 0,500,4000
 plot 'data/third.data' using 0:($5) with lines title 'Cost'
 #+end_src
 
@@ -302,6 +358,10 @@ plot 'data/third.data' using 0:($5) with lines title 'Cost'
 [[file:images/third_cost.png]]
 
 Acceleration value $a$ shows a bang-bang controller behavior
+with 0.25 constraint near complex turns, so instead of
+acceleration-breaking cycles as in the second try
+the vehicle performs fast-slow acceleration cycles with sporadic short breaking.
+
 #+begin_src gnuplot :exports both :file images/third_actuators.png
 reset
 set terminal png size 640,480
@@ -315,3 +375,14 @@ plot 'data/third.data' using 0:($6) with lines title 'delta', \
 
 #+results:
 [[file:images/third_actuators.png]]
+
+[[https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/third.mp4][Link to video file]]
+
+* Summary
+
+With help of different sets of weight values $w_{.}$ it is possible to make different driving styles:
+
+- very safe driving by penalizing acceleration
+- driving with constant average speed with 0 acceleration change penalty and high penalty for steering angle changes
+- driving with high speed by increasing reference velocity and adjusting upper bounds for acceleration that prevents
+  acceleration in turns

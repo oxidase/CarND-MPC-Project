@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2017-06-05 Mon 23:34 -->
+<!-- 2017-06-06 Tue 02:34 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>CarND-MPC-Project project</title>
@@ -256,58 +256,62 @@ for the JavaScript code in this tag.
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents">
 <ul>
-<li><a href="#org971bc9c">1. Kinematic Model</a></li>
-<li><a href="#orgc1a3886">2. Kinematic model with errors</a></li>
-<li><a href="#orge7deff3">3. Model realization</a></li>
-<li><a href="#orgd772378">4. One step</a>
+<li><a href="#org3db5330">1. Kinematic Model</a></li>
+<li><a href="#orgec510cc">2. Kinematic model with errors (from lecture)</a>
 <ul>
-<li><a href="#org0e3f2e1">4.1. Received step data</a></li>
-<li><a href="#orgf8dc0b4">4.2. Transformed points to the local vehicle's reference systems</a></li>
-<li><a href="#org374e0a5">4.3. Fitting a cubic polynomial</a></li>
+<li><a href="#org55d452b">2.1. Cross Track Error</a></li>
+<li><a href="#org8e6d73f">2.2. Orientation Error</a></li>
 </ul>
 </li>
-<li><a href="#org7c22e88">5. Results</a>
+<li><a href="#orgd3865e7">3. Model implementation</a></li>
+<li><a href="#orgb299c3e">4. One step calculation of the reference track</a>
 <ul>
-<li><a href="#org84b3d62">5.1. First try with \(v_{\text{ref}}=20\) m/s and \(V_{\text{max}}=26.3\) mph</a></li>
+<li><a href="#org9a63690">4.1. Received step data</a></li>
+<li><a href="#orgfc44dd2">4.2. Transformed points to the local vehicle's reference systems</a></li>
+<li><a href="#org87424d5">4.3. Fitting a cubic polynomial</a></li>
 </ul>
 </li>
+<li><a href="#org45e54b5">5. Simulation results</a>
+<ul>
+<li><a href="#org5cab8f3">5.1. First try with \(v_{\text{ref}}=20\) m/s and \(V_{\text{max}}=26.3\) mph</a></li>
+<li><a href="#org2116a08">5.2. Second try with \(v_{\text{ref}}=20\) m/s and average speed 45 mph</a></li>
+<li><a href="#org68f9c49">5.3. Third try with \(v_{\text{ref}}=32\) m/s and top speed \(72\) mph</a></li>
+</ul>
+</li>
+<li><a href="#org8d07557">6. Summary</a></li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-org971bc9c" class="outline-2">
-<h2 id="org971bc9c"><span class="section-number-2">1</span> Kinematic Model</h2>
+<div id="outline-container-org3db5330" class="outline-2">
+<h2 id="org3db5330"><span class="section-number-2">1</span> Kinematic Model</h2>
 <div class="outline-text-2" id="text-1">
 <p>
 State vector of the model
 \[
 x,y,\psi,v
 \]
-where \(x\) and \(y\) are the global coordinates of the characteristic point,
-\(\psi\) is the orientation of the car, \(v\) is the velocity
+where \(x\) and \(y\) are the coordinates of the vehicle in local coordinate,
+\(\psi\) is the orientation of the car, \(v\) is the velocity.
 </p>
 
 <p>
-Actuators
+Vehicle model has two actuators
 \[
 \delta, a
 \]
+with \(\delta\) a steering angle and \(a\) an acceleration (throttle/brake combined).
 </p>
 
 <p>
-This reduces the vehicle to two actuators, which we'll denote as \(\delta\) for steering angle and \(a\) for acceleration (throttle/brake combined).
-</p>
-
-
-<p>
-Here it is:
+Model difference equation:
 \[
 </p>
 \begin{array}{rcl}
 x_{t+1}&=&\displaystyle x_t+v_t \cos(\psi_t) dt\\
 y_{t+1}&=&\displaystyle y_t+v_t \sin(\psi_t) dt\\
-\psi_{t+1}&=&\displaystyle \psi_t+\frac{v_t}{L_f} \tan{\delta_t} dt\\
-v_{t+1}&=&\displaystyle v_t+a_t∗dt
+\psi_{t+1}&=&\displaystyle \psi_t+\frac{v_t}{L_f} \delta_t dt\\
+v_{t+1}&=&\displaystyle v_t+a_t dt
 \end{array}
 <p>
 \]
@@ -315,31 +319,112 @@ v_{t+1}&=&\displaystyle v_t+a_t∗dt
 </div>
 </div>
 
-<div id="outline-container-orgc1a3886" class="outline-2">
-<h2 id="orgc1a3886"><span class="section-number-2">2</span> Kinematic model with errors</h2>
+<div id="outline-container-orgec510cc" class="outline-2">
+<h2 id="orgec510cc"><span class="section-number-2">2</span> Kinematic model with errors (from lecture)</h2>
 <div class="outline-text-2" id="text-2">
 <p>
-The state is \([x,y,\psi,v,cte,e_{\psi}]\)
+The state of the model
+\[
+x,y,\psi,v,cte,e\psi
+\]
+is extended with \(cte\) — the cross-track error and \(e\psi\) — the orientation error.
 </p>
 </div>
+
+<div id="outline-container-org55d452b" class="outline-3">
+<h3 id="org55d452b"><span class="section-number-3">2.1</span> Cross Track Error</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+The error between the center of the road and the vehicle's position is the cross track error:
+\[
+cte_{t+1}=cte_t + v_t \sin(e\psi_t) dt
+\]
+</p>
+
+<p>
+In this case \(cte_t\) can be expressed as the difference between the reference line and the
+current vehicle position \(y\). Assuming the reference line is a polynomial \(f(x)\):
+\[
+cte_t=f(x_t)-y_t
+\]
+</p>
+
+<p>
+If we substitute \(cte_t\) back into the original equation the result is:
+\[
+cte_{t+1}=f(x_t)-y_t + v_t \sin(e\psi_t) dt
+\]
+</p>
+
+<p>
+This can be broken up into two parts:
+</p>
+<ul class="org-ul">
+<li>\(f(x_t)-y_t\) being the current cross track error</li>
+<li>\(v_t \sin(e\psi_t) dt\) being the change in error caused by the vehicle's movement</li>
+</ul>
+</div>
 </div>
 
+<div id="outline-container-org8e6d73f" class="outline-3">
+<h3 id="org8e6d73f"><span class="section-number-3">2.2</span> Orientation Error</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+The orientation error:
+\[
+e\psi_{t+1}=e\psi_t+ \frac{v_t}{L_f} \delta_t dt
+\]
+The update rule is essentially the same as \(\psi\).
+</p>
 
+<p>
+\(e\psi_t\) is the desired orientation subtracted from the current orientation:
+\[
+e\psi_t=\psi_t−\psi{des}_{t}
+\]
+where \(\psi{des}_t\) (desired \(\psi\)) and can be calculated as the tangential
+angle of the polynomial \(f(x)\) evaluated at \(x_t\), as \(\arctan(f'(x_t))\)
+with \(f'\) is the derivative of the polynomial.
+\[
+e\psi_{t+1}=\psi_t-\psi{des}_t + \frac{v_t}{L_f} \delta_t dt
+\]
+Similarly to the cross track error this can be interpreted as two parts:
+</p>
+<ul class="org-ul">
+<li>\(\psi_t-\psi{des}_t\) being the current orientation error</li>
+<li>\(\frac{v_t}{L_f} \delta_t dt\) being the change in error caused by the vehicle's movement</li>
+</ul>
+</div>
+</div>
+</div>
 
-<div id="outline-container-orge7deff3" class="outline-2">
-<h2 id="orge7deff3"><span class="section-number-2">3</span> Model realization</h2>
+<div id="outline-container-orgd3865e7" class="outline-2">
+<h2 id="orgd3865e7"><span class="section-number-2">3</span> Model implementation</h2>
 <div class="outline-text-2" id="text-3">
 <p>
-<a href="https://github.com/udacity/CarND-MPC-Quizzes/blob/master/mpc_to_line/solution/MPC.cpp">https://github.com/udacity/CarND-MPC-Quizzes/blob/master/mpc_to_line/solution/MPC.cpp</a>
+The vehicle model is implemented in <a href="https://github.com/udacity/CarND-MPC-Quizzes/blob/master/mpc_to_line/solution/MPC.cpp">https://github.com/udacity/CarND-MPC-Quizzes/blob/master/mpc_to_line/solution/MPC.cpp</a>
+</p>
+
+<p>
+Number of forward steps is \(N = \{20, 40\}\), the time step \(dt = 0.05\). The velocity reference value is \(v_{\text{ref}}=\{20, 32\}\) m/s.
+The model implements the cost function
+\[
+C = \left[\sum_{i=0}^N w_{cte} cte_i^2 + w_{e\psi} e\psi_i^2 + w_v (v_i-v_{\text{ref}})^2\right]  + \left[ \sum_{i=0}^{N-1} w_{\delta} \delta_i^2 + w_a a_i^2 \right] + \left[ \sum_{i=0}^{N-2} w_{\delta'}(\delta_{i+1}-\delta_i)^2 + w_{a'}(a_{i+1}-a_{i})^2 \right]
+\]
+with different weight values \(w_{.}\) and difference equations at \(N\) time points as optimization equality constraints.
+The optimizer is IPOPT with CppAD symbolic differentiation procedure.
+The state variables are unbounded, steering angles \(\delta\) lies in range [-25, 25] degrees,
+acceleration values are in range [-1,1] or [-1,0.25] depending on the road complexity.
 </p>
 </div>
 </div>
 
-<div id="outline-container-orgd772378" class="outline-2">
-<h2 id="orgd772378"><span class="section-number-2">4</span> One step</h2>
+
+<div id="outline-container-orgb299c3e" class="outline-2">
+<h2 id="orgb299c3e"><span class="section-number-2">4</span> One step calculation of the reference track</h2>
 <div class="outline-text-2" id="text-4">
-</div><div id="outline-container-org0e3f2e1" class="outline-3">
-<h3 id="org0e3f2e1"><span class="section-number-3">4.1</span> Received step data</h3>
+</div><div id="outline-container-org9a63690" class="outline-3">
+<h3 id="org9a63690"><span class="section-number-3">4.1</span> Received step data</h3>
 <div class="outline-text-3" id="text-4-1">
 <div class="org-src-container">
 <pre class="src src-R">ptsx <span style="color: #008b8b;">&lt;-</span> c(-32.161729999999999, -43.491729999999997, -61.090000000000003, -78.291719999999998, -93.050020000000004, -107.7717)
@@ -354,10 +439,16 @@ plot(ptsx, ptsy, <span style="color: #8b2252;">'b'</span>)
 arrows(px, py, px + 10 * cos(psi), py + 10 * sin(psi), col=<span style="color: #8b2252;">'red'</span>)
 </pre>
 </div>
+
+
+<div class="figure">
+<p><img src="images/pts.png" alt="pts.png" />
+</p>
 </div>
 </div>
-<div id="outline-container-orgf8dc0b4" class="outline-3">
-<h3 id="orgf8dc0b4"><span class="section-number-3">4.2</span> Transformed points to the local vehicle's reference systems</h3>
+</div>
+<div id="outline-container-orgfc44dd2" class="outline-3">
+<h3 id="orgfc44dd2"><span class="section-number-3">4.2</span> Transformed points to the local vehicle's reference systems</h3>
 <div class="outline-text-3" id="text-4-2">
 <div class="org-src-container">
 <pre class="src src-R">xy <span style="color: #008b8b;">&lt;-</span> mapply(<span style="color: #a020f0;">function</span>(x, y) c(x*cos(psi) + y*sin(psi), -x*sin(psi) + y*cos(psi)), x = ptsx - px, y = ptsy - py)
@@ -367,16 +458,28 @@ arrows(0, 0, 10, 0, col=<span style="color: #8b2252;">'red'</span>)
 </pre>
 </div>
 
+
+<div class="figure">
+<p><img src="images/val.png" alt="val.png" />
+</p>
+</div>
+
 <div class="org-src-container">
 <pre class="src src-R">paste(c(<span style="color: #8b2252;">"X: "</span>, xy[1,]) ,collapse=<span style="color: #8b2252;">' '</span>)
 paste(c(<span style="color: #8b2252;">"Y: "</span>, xy[2,]) ,collapse=<span style="color: #8b2252;">' '</span>)
 </pre>
 </div>
+
+<pre class="example">
+[1] "X:  -9.60304259089076 3.93940137227534 25.8285057832489 48.0012942525802 67.7201992157065 88.1741885507836"
+[1] "Y:  0.877533697608325 0.71166777432672 1.724392909049 3.8695011146151 6.7442717046266 10.7776571055713"
+
+</pre>
 </div>
 </div>
 
-<div id="outline-container-org374e0a5" class="outline-3">
-<h3 id="org374e0a5"><span class="section-number-3">4.3</span> Fitting a cubic polynomial</h3>
+<div id="outline-container-org87424d5" class="outline-3">
+<h3 id="org87424d5"><span class="section-number-3">4.3</span> Fitting a cubic polynomial</h3>
 <div class="outline-text-3" id="text-4-3">
 <div class="org-src-container">
 <pre class="src src-R">coeffs <span style="color: #008b8b;">&lt;-</span> lm(formula = xy[2,] ~ xy[1,] + I(xy[1,]^2) + I(xy[1,]^3))
@@ -385,6 +488,17 @@ print(coeffs)
 </pre>
 </div>
 
+<pre class="example">
+
+Call:
+lm(formula = xy[2, ] ~ xy[1, ] + I(xy[1, ]^2) + I(xy[1, ]^3))
+
+Coefficients:
+ (Intercept)       xy[1, ]  I(xy[1, ]^2)  I(xy[1, ]^3)
+   7.443e-01     2.145e-03     1.351e-03    -9.852e-07
+
+</pre>
+
 <div class="org-src-container">
 <pre class="src src-R">plot(xy[1,], xy[2,], <span style="color: #8b2252;">'b'</span>, ylim=c(-1, 12))
 xx <span style="color: #008b8b;">&lt;-</span> seq(min(xy[1,]), max(xy[1,]), length=50)
@@ -392,25 +506,35 @@ lines(xx, lapply(xx, track), type=<span style="color: #8b2252;">"l"</span>, col=
 arrows(0, 0, 10, 0, col=<span style="color: #8b2252;">'red'</span>)
 </pre>
 </div>
+
+
+<div class="figure">
+<p><img src="images/poly.png" alt="poly.png" />
+</p>
+</div>
 </div>
 </div>
 </div>
 
 
-<div id="outline-container-org7c22e88" class="outline-2">
-<h2 id="org7c22e88"><span class="section-number-2">5</span> Results</h2>
+<div id="outline-container-org45e54b5" class="outline-2">
+<h2 id="org45e54b5"><span class="section-number-2">5</span> Simulation results</h2>
 <div class="outline-text-2" id="text-5">
-</div><div id="outline-container-org84b3d62" class="outline-3">
-<h3 id="org84b3d62"><span class="section-number-3">5.1</span> First try with \(v_{\text{ref}}=20\) m/s and \(V_{\text{max}}=26.3\) mph</h3>
+</div><div id="outline-container-org5cab8f3" class="outline-3">
+<h3 id="org5cab8f3"><span class="section-number-3">5.1</span> First try with \(v_{\text{ref}}=20\) m/s and \(V_{\text{max}}=26.3\) mph</h3>
 <div class="outline-text-3" id="text-5-1">
 <p>
-Cost function
+In the first both activation values and changes in activation values are penalized with weight values 100, so
+the cost function is
 \[
 C = \left[\sum_{i=0}^N cte_i^2 + e\psi_i^2 + (v_i-v_{\text{ref}})^2\right]  + 100 \left[ \sum_{i=0}^{N-1} \delta_i^2 + a_i^2 \right] + 100 \left[ \sum_{i=0}^{N-2} (\delta_{i+1}-\delta_i)^2 + (a_{i+1}-a_{i})^2 \right]
 \]
 </p>
 
 
+<p>
+The track results is
+</p>
 <div class="org-src-container">
 <pre class="src src-gnuplot"><span style="color: #008b8b;">reset</span>
 <span style="color: #008b8b;">set</span> terminal png size 1600,1000
@@ -429,8 +553,9 @@ C = \left[\sum_{i=0}^N cte_i^2 + e\psi_i^2 + (v_i-v_{\text{ref}})^2\right]  + 10
 </div>
 
 
+
 <p>
-Vehicle's speed settled at \(\approx 26.3\) mph.
+Vehicle's speed is settled at \(\approx 26.3\) mph.
 </p>
 <div class="org-src-container">
 <pre class="src src-gnuplot"><span style="color: #008b8b;">reset</span>
@@ -491,15 +616,271 @@ so acceleration value \(a\) is almost constant at \(0.225\)
 </div>
 
 <p>
-Link to video file <a href="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/first.mp4">https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/first.mp4</a>]]
+  <a href="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/first.mp4">Link to video file</a>
+</p>
+
+<p>
+  <center>
+    <video width="640" height="480" controls>
+      <source src="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/first.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </center>
+</p>
+
+</div>
+</div>
+
+
+<div id="outline-container-org2116a08" class="outline-3">
+<h3 id="org2116a08"><span class="section-number-3">5.2</span> Second try with \(v_{\text{ref}}=20\) m/s and average speed 45 mph</h3>
+<div class="outline-text-3" id="text-5-2">
+<p>
+In this try change in the acceleration is not penalized but change of the steering angle is penalized at most,
+also error in the velocity is penalized less than the cross-track error and the error in \(\psi\),  so
+the cost function is
+\[
+C = \left[\sum_{i=0}^N cte_i^2 + e\psi_i^2 + 10^{-1}(v_i-v_{\text{ref}})^2\right]  + \left[ \sum_{i=0}^{N-1} 1000 \delta_i^2 + 50 a_i^2 \right] + 50000 \sum_{i=0}^{N-2} (\delta_{i+1}-\delta_i)^2
+\]
+</p>
+
+<p>
+The track result
+</p>
+<div class="org-src-container">
+<pre class="src src-gnuplot"><span style="color: #008b8b;">reset</span>
+<span style="color: #008b8b;">set</span> terminal png size 1600,1000
+<span style="color: #008b8b;">set</span> <span style="color: #228b22;">title</span> <span style="color: #8b2252;">"Track"</span>
+<span style="color: #008b8b;">set</span> xlabel <span style="color: #8b2252;">"x"</span>
+<span style="color: #008b8b;">set</span> xlabel <span style="color: #8b2252;">"y"</span>
+<span style="color: #a020f0;">plot</span> <span style="color: #8b2252;">'data/second.data'</span> <span style="color: #228b22;">using</span> ($1):($2) <span style="color: #228b22;">with</span> <span style="color: #0000ff;">lines</span> <span style="color: #228b22;">lw</span> 5 <span style="color: #228b22;">title</span> <span style="color: #8b2252;">'Road'</span>, \
+     <span style="color: #8b2252;">'data/second.data'</span> <span style="color: #228b22;">using</span> 1:2:($4*<span style="color: #0000ff;">cos</span>($3)):($4*<span style="color: #0000ff;">sin</span>($3)) <span style="color: #228b22;">with</span> <span style="color: #0000ff;">vectors</span> head filled <span style="color: #228b22;">lt</span> 2 <span style="color: #228b22;">title</span> <span style="color: #8b2252;">'Velocity'</span>
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="images/second_track.png" alt="second_track.png" />
 </p>
 </div>
+
+
+<p>
+Vehicle's speed oscillates near the reference value \(\approx 45\) mph:
+</p>
+<div class="org-src-container">
+<pre class="src src-gnuplot"><span style="color: #008b8b;">reset</span>
+<span style="color: #008b8b;">set</span> terminal png size 640,480
+<span style="color: #008b8b;">set</span> <span style="color: #228b22;">title</span> <span style="color: #8b2252;">"Speed"</span>
+<span style="color: #008b8b;">set</span> xlabel <span style="color: #8b2252;">"Step"</span>
+<span style="color: #008b8b;">set</span> yrange [<span style="color: #008b8b;">0:60</span>]
+<span style="color: #008b8b;">set</span> ytics 0,5,60
+<span style="color: #a020f0;">plot</span> <span style="color: #8b2252;">'data/second.data'</span> <span style="color: #228b22;">using</span> 0:($4*3600/1609.34) <span style="color: #228b22;">with</span> <span style="color: #0000ff;">lines</span> <span style="color: #228b22;">title</span> <span style="color: #8b2252;">'V, mph'</span>
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="images/second_speed.png" alt="second_speed.png" />
+</p>
+</div>
+
+<p>
+The cost function goes down and has multiple maxima at turns
+</p>
+<div class="org-src-container">
+<pre class="src src-gnuplot"><span style="color: #008b8b;">reset</span>
+<span style="color: #008b8b;">set</span> terminal png size 640,480
+<span style="color: #008b8b;">set</span> <span style="color: #228b22;">title</span> <span style="color: #8b2252;">"Cost"</span>
+<span style="color: #008b8b;">set</span> xlabel <span style="color: #8b2252;">"Step"</span>
+<span style="color: #008b8b;">set</span> yrange [<span style="color: #008b8b;">0:1500</span>]
+<span style="color: #008b8b;">set</span> ytics 0,500,1500
+<span style="color: #a020f0;">plot</span> <span style="color: #8b2252;">'data/second.data'</span> <span style="color: #228b22;">using</span> 0:($5) <span style="color: #228b22;">with</span> <span style="color: #0000ff;">lines</span> <span style="color: #228b22;">title</span> <span style="color: #8b2252;">'Cost'</span>
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="images/second_cost.png" alt="second_cost.png" />
+</p>
+</div>
+
+<p>
+Acceleration value \(a\) shows a bang-bang controller behavior
+</p>
+<div class="org-src-container">
+<pre class="src src-gnuplot"><span style="color: #008b8b;">reset</span>
+<span style="color: #008b8b;">set</span> terminal png size 640,480
+<span style="color: #008b8b;">set</span> <span style="color: #228b22;">title</span> <span style="color: #8b2252;">"Actuators"</span>
+<span style="color: #008b8b;">set</span> xlabel <span style="color: #8b2252;">"Step"</span>
+<span style="color: #008b8b;">set</span> yrange [<span style="color: #008b8b;">-2:2</span>]
+<span style="color: #008b8b;">set</span> ytics -1,0.5,1
+<span style="color: #a020f0;">plot</span> <span style="color: #8b2252;">'data/second.data'</span> <span style="color: #228b22;">using</span> 0:($6) <span style="color: #228b22;">with</span> <span style="color: #0000ff;">lines</span> <span style="color: #228b22;">title</span> <span style="color: #8b2252;">'delta'</span>, \
+     <span style="color: #8b2252;">'data/second.data'</span> <span style="color: #228b22;">using</span> 0:($7) <span style="color: #228b22;">with</span> <span style="color: #0000ff;">lines</span> <span style="color: #228b22;">title</span> <span style="color: #8b2252;">'a'</span>
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="images/second_actuators.png" alt="second_actuators.png" />
+</p>
+</div>
+
+<p>
+  <a href="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/second.mp4">Link to video file</a>
+</p>
+
+<p>
+  <center>
+    <video width="640" height="480" controls>
+      <source src="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/second.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </center>
+</p>
+
+</div>
+</div>
+
+
+<div id="outline-container-org68f9c49" class="outline-3">
+<h3 id="org68f9c49"><span class="section-number-3">5.3</span> Third try with \(v_{\text{ref}}=32\) m/s and top speed \(72\) mph</h3>
+<div class="outline-text-3" id="text-5-3">
+<p>
+In this try change in the acceleration is not penalized but change of the steering angle is penalized at most,
+so the cost function is
+\[
+C = \left[\sum_{i=0}^N cte_i^2 + e\psi_i^2 + 10^{-1}(v_i-v_{\text{ref}})^2\right]  + \left[ \sum_{i=0}^{N-1} 100 \delta_i^2 + 5 a_i^2 \right] + 5000000 \sum_{i=0}^{N-2} (\delta_{i+1}-\delta_i)^2
+\]
+</p>
+
+<p>
+Also to prevent acceleration in turns the positive acceleration constraint is
+set to 0.25 if the tracks has S-shape turns in the time horizon.
+</p>
+
+<p>
+The track result
+</p>
+<div class="org-src-container">
+<pre class="src src-gnuplot"><span style="color: #008b8b;">reset</span>
+<span style="color: #008b8b;">set</span> terminal png size 1600,1000
+<span style="color: #008b8b;">set</span> <span style="color: #228b22;">title</span> <span style="color: #8b2252;">"Track"</span>
+<span style="color: #008b8b;">set</span> xlabel <span style="color: #8b2252;">"x"</span>
+<span style="color: #008b8b;">set</span> xlabel <span style="color: #8b2252;">"y"</span>
+<span style="color: #a020f0;">plot</span> <span style="color: #8b2252;">'data/third.data'</span> <span style="color: #228b22;">using</span> ($1):($2) <span style="color: #228b22;">with</span> <span style="color: #0000ff;">lines</span> <span style="color: #228b22;">lw</span> 5 <span style="color: #228b22;">title</span> <span style="color: #8b2252;">'Road'</span>, \
+     <span style="color: #8b2252;">'data/third.data'</span> <span style="color: #228b22;">using</span> 1:2:($4*<span style="color: #0000ff;">cos</span>($3)):($4*<span style="color: #0000ff;">sin</span>($3)) <span style="color: #228b22;">with</span> <span style="color: #0000ff;">vectors</span> head filled <span style="color: #228b22;">lt</span> 2 <span style="color: #228b22;">title</span> <span style="color: #8b2252;">'Velocity'</span>
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="images/third_track.png" alt="third_track.png" />
+</p>
+</div>
+
+
+<p>
+Vehicle's speed oscillates near the reference value \(\approx 45\) mph:
+</p>
+<div class="org-src-container">
+<pre class="src src-gnuplot"><span style="color: #008b8b;">reset</span>
+<span style="color: #008b8b;">set</span> terminal png size 640,480
+<span style="color: #008b8b;">set</span> <span style="color: #228b22;">title</span> <span style="color: #8b2252;">"Speed"</span>
+<span style="color: #008b8b;">set</span> xlabel <span style="color: #8b2252;">"Step"</span>
+<span style="color: #008b8b;">set</span> yrange [<span style="color: #008b8b;">0:80</span>]
+<span style="color: #008b8b;">set</span> ytics 0,10,80
+<span style="color: #a020f0;">plot</span> <span style="color: #8b2252;">'data/third.data'</span> <span style="color: #228b22;">using</span> 0:($4*3600/1609.34) <span style="color: #228b22;">with</span> <span style="color: #0000ff;">lines</span> <span style="color: #228b22;">title</span> <span style="color: #8b2252;">'V, mph'</span>
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="images/third_speed.png" alt="third_speed.png" />
+</p>
+</div>
+
+<p>
+The cost function goes down and has multiple maxima at turns
+</p>
+<div class="org-src-container">
+<pre class="src src-gnuplot"><span style="color: #008b8b;">reset</span>
+<span style="color: #008b8b;">set</span> terminal png size 640,480
+<span style="color: #008b8b;">set</span> <span style="color: #228b22;">title</span> <span style="color: #8b2252;">"Cost"</span>
+<span style="color: #008b8b;">set</span> xlabel <span style="color: #8b2252;">"Step"</span>
+<span style="color: #008b8b;">set</span> yrange [<span style="color: #008b8b;">0:4000</span>]
+<span style="color: #008b8b;">set</span> ytics 0,500,4000
+<span style="color: #a020f0;">plot</span> <span style="color: #8b2252;">'data/third.data'</span> <span style="color: #228b22;">using</span> 0:($5) <span style="color: #228b22;">with</span> <span style="color: #0000ff;">lines</span> <span style="color: #228b22;">title</span> <span style="color: #8b2252;">'Cost'</span>
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="images/third_cost.png" alt="third_cost.png" />
+</p>
+</div>
+
+<p>
+Acceleration value \(a\) shows a bang-bang controller behavior
+with 0.25 constraint near complex turns, so instead of
+acceleration-breaking cycles as in the second try
+the vehicle performs fast-slow acceleration cycles with sporadic short breaking.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-gnuplot"><span style="color: #008b8b;">reset</span>
+<span style="color: #008b8b;">set</span> terminal png size 640,480
+<span style="color: #008b8b;">set</span> <span style="color: #228b22;">title</span> <span style="color: #8b2252;">"Actuators"</span>
+<span style="color: #008b8b;">set</span> xlabel <span style="color: #8b2252;">"Step"</span>
+<span style="color: #008b8b;">set</span> yrange [<span style="color: #008b8b;">-2:2</span>]
+<span style="color: #008b8b;">set</span> ytics -1,0.5,1
+<span style="color: #a020f0;">plot</span> <span style="color: #8b2252;">'data/third.data'</span> <span style="color: #228b22;">using</span> 0:($6) <span style="color: #228b22;">with</span> <span style="color: #0000ff;">lines</span> <span style="color: #228b22;">title</span> <span style="color: #8b2252;">'delta'</span>, \
+     <span style="color: #8b2252;">'data/third.data'</span> <span style="color: #228b22;">using</span> 0:($7) <span style="color: #228b22;">with</span> <span style="color: #0000ff;">lines</span> <span style="color: #228b22;">title</span> <span style="color: #8b2252;">'a'</span>
+</pre>
+</div>
+
+
+<div class="figure">
+<p><img src="images/third_actuators.png" alt="third_actuators.png" />
+</p>
+</div>
+
+<p>
+  <a href="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/third.mp4">Link to video file</a>
+</p>
+
+<p>
+  <center>
+    <video width="640" height="480" controls>
+      <source src="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/third.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </center>
+</p>
+
+</div>
+</div>
+</div>
+
+<div id="outline-container-org8d07557" class="outline-2">
+<h2 id="org8d07557"><span class="section-number-2">6</span> Summary</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+With help of different sets of weight values \(w_{.}\) it is possible to make different driving styles:
+</p>
+
+<ul class="org-ul">
+<li>very safe driving by penalizing acceleration</li>
+<li>driving with constant average speed with 0 acceleration change penalty and high penalty for steering angle changes</li>
+<li>driving with high speed by increasing reference velocity and adjusting upper bounds for acceleration that prevents
+acceleration in turns</li>
+</ul>
 </div>
 </div>
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Michael Krasnyk</p>
-<p class="date">Created: 2017-06-05 Mon 23:34</p>
+<p class="date">Created: 2017-06-06 Tue 02:34</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
 </body>
