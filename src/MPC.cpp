@@ -21,7 +21,7 @@ double dt = 0.05;
 // This is the length from front to CoG that has a similar radius.
 const double Lf = 2.67;
 
-const double ref_v = 32; // in m/s
+double ref_v = 32; // in m/s
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should to establish
@@ -144,7 +144,8 @@ public:
 MPC::MPC() {}
 MPC::~MPC() {}
 
-std::tuple<double, double, std::vector<double>, std::vector<double>, double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs, double maxx)
+std::tuple<double, double, std::vector<double>, std::vector<double>, double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs,
+                                                                                        double minx, double maxx)
 {
     bool ok = true;
     typedef CPPAD_TESTVECTOR(double) Dvector;
@@ -211,7 +212,7 @@ std::tuple<double, double, std::vector<double>, std::vector<double>, double> MPC
     for (std::size_t i = a_start; i < a_start + N - 1; ++i)
     {
         vars_lowerbound[i] = -1.0;
-        vars_upperbound[i] = +1.0 / (3 * ncross + 1);
+        vars_upperbound[i] = +1.0; // / (3 * ncross + 1);
     }
 
     // Lower and upper limits for the constraints
@@ -238,6 +239,16 @@ std::tuple<double, double, std::vector<double>, std::vector<double>, double> MPC
     constraints_upperbound[cte_start] = cte;
     constraints_upperbound[epsi_start] = epsi;
 
+    auto curv = [&coeffs](double x) { return (2. * coeffs[2] + 6. * coeffs[3] * x) / pow(pow(coeffs[1] + 2. * coeffs[2] * x + 3. * coeffs[3] * x * x, 2.) + 1., 1.5); };
+    double curv2 = 0.;
+    for (double x = minx, dx = (maxx - minx) / 1000; x <= maxx; x += dx)
+    {
+        curv2 += pow(curv(x), 2.) * dx;
+    }
+
+    curv2 /= (maxx - minx);
+    ref_v = 50. - 30. / (1. + exp(-.5e5*(curv2-1.2e-4)));
+    //std::cout << "== curv " << curv2 << " " << ref_v << " (" << round(ref_v * 3600. /1609.34) << ")\n";
 
     // object that computes objective and constraints
     FG_eval fg_eval(coeffs);

@@ -18,7 +18,8 @@ public:
 
     // Solve the model given an initial state and polynomial coefficients.
     // Return the first actuatotions.
-    std::tuple<double, double, std::vector<double>, std::vector<double>, double> Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs, double maxx);
+    std::tuple<double, double, std::vector<double>, std::vector<double>, double> Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs,
+                                                                                       double minx, double maxx);
 };
 
 #endif /* MPC_H */

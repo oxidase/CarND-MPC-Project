@@ -378,11 +378,143 @@ plot 'data/third.data' using 0:($6) with lines title 'delta', \
 
 [[https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/third.mp4][Link to video file]]
 
+
+** Fourth try with maximal speed 112 mph
+
+Another possibility is to control the reference velocity by the curvature of the
+road segment in the time horizon.
+
+The curvature for the fitted cubic polynomial $\kappa(x)$ is be computed as
+
+#+name: curvpoly
+#+HEADER: :exports none
+#+begin_src maxima :results raw
+f(x) := c[3]*x^3+c[2]*x^2+c[1]*x+c[0];
+d1(x) := at(diff(f(z),z), [z=x]);
+d2(x) := at(diff(d1(z),z), [z=x]);
+k(x) := d2(x) / (1 + d1(x)^2)^(3/2);
+tex(k(x));
+#+end_src
+
+#+results: curvpoly
+$${{6\,c_{3}\,x+2\,c_{2}}\over{\left(\left(3\,c_{3}\,x^2+2\,c_{2}\,x+
+ c_{1}\right)^2+1\right)^{{{3}\over{2}}}}}$$
+
+
+
+Curvature $\kappa(x)$ for the first step
+#+name: Curvature for the first step
+#+begin_src maxima :exports results :file images/curv.png :results graphics
+programmode: false;
+f(x) := c[3]*x^3+c[2]*x^2+c[1]*x+c[0];
+d1(x) := at(diff(f(z),z), [z=x]);
+d2(x) := at(diff(d1(z),z), [z=x]);
+k(x) := d2(x) / (1 + d1(x)^2)^(3/2);
+plot2d(at(k(x), [c[0]=7.443e-01, c[1]=2.145e-03, c[2]=1.351e-03, c[3]=-9.852e-07]), [x, -10, 89])$
+#+end_src
+
+#+results: Curvature for the first step
+[[file:images/curv.png]]
+
+The reference velocity is computed by the logistic function
+with the average squared curvature as the argument
+\[
+\bar{\kappa} = \frac{1}{x_{\max} - x_{\min}} \int_{x_{\min}}^{x_{\max}} \kappa(x)^2 dx
+\]
+
+and
+\[
+\text{ref}_v = 50 - \frac{30}{1+\exp\{-5\cdot 10^4 (x-1.2\cdot {10^4})\}}
+\]
+with 50 m/s (112 mph) maximal speed and 20 m/s (45 mph) speed in turns.
+Parameters $-5\cdot 10^4$ and $1.2\cdot {10^4}$ represent turning style:
+- $1.2\cdot {10^4}$ activation average quadratic curvature to reduce speed
+- $-5\cdot 10^4$ steepness of the speed reduction
+
+#+name: Reference velocity
+#+begin_src gnuplot :exports both :file images/ref_v.png
+reset
+set terminal png size 640,480
+set title "Reference velocity"
+set xlabel "k\342\200\276"
+plot [0:4e-4] (50 - 30 / (1 + exp(-.5e5*(x-1.2e-4)))) title 'ref_v, [m/s]'
+#+end_src
+
+#+results: Reference velocity
+[[file:images/ref_v.png]]
+
+
+The track result
+#+begin_src gnuplot :exports both :file images/fourth_track.png
+reset
+set terminal png size 1600,1000
+set title "Track"
+set xlabel "x"
+set xlabel "y"
+plot 'data/fourth.data' using ($1):($2) with lines lw 5 title 'Road', \
+     'data/fourth.data' using 1:2:($4*cos($3)):($4*sin($3)) with vectors head filled lt 2 title 'Velocity'
+#+end_src
+
+#+results:
+[[file:images/fourth_track.png]]
+
+
+Vehicle's speed oscillates between 40 and 100 mph
+with acceleration on straight road segments and fast speed reduction in turns
+#+begin_src gnuplot :exports both :file images/fourth_speed.png
+reset
+set terminal png size 640,480
+set title "Speed"
+set xlabel "Step"
+set yrange [0:100]
+set ytics 0,10,100
+plot 'data/fourth.data' using 0:($4*3600/1609.34) with lines title 'V, mph'
+#+end_src
+
+#+results:
+[[file:images/fourth_speed.png]]
+
+The cost function
+#+begin_src gnuplot :exports both :file images/fourth_cost.png
+reset
+set terminal png size 640,480
+set title "Cost"
+set xlabel "Step"
+set yrange [0:8000]
+set ytics 0,1000,8000
+plot 'data/fourth.data' using 0:($5) with lines title 'Cost'
+#+end_src
+
+#+results:
+[[file:images/fourth_cost.png]]
+
+Acceleration value $a$ shows a bang-bang controller behavior
+as in the second try, but now acceleration segments are larger
+with shorter breaking segments.
+
+#+begin_src gnuplot :exports both :file images/fourth_actuators.png
+reset
+set terminal png size 640,480
+set title "Actuators"
+set xlabel "Step"
+set yrange [-2:2]
+set ytics -1,0.5,1
+plot 'data/fourth.data' using 0:($6) with lines title 'delta', \
+     'data/fourth.data' using 0:($7) with lines title 'a'
+#+end_src
+
+#+results:
+[[file:images/fourth_actuators.png]]
+
+[[https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/fourth.mp4][Link to video file]]
+
+
 * Summary
 
-With help of different sets of weight values $w_{.}$ it is possible to make different driving styles:
+With help of different sets of weight values $w_{.}$ and reference values it is possible to make different driving styles:
 
 - very safe driving by penalizing acceleration
 - driving with constant average speed with 0 acceleration change penalty and high penalty for steering angle changes
 - driving with high speed by increasing reference velocity and adjusting upper bounds for acceleration that prevents
   acceleration in turns
+- setting reference velocity based on the map or predicted horizon values results in human-like driving
