@@ -116,9 +116,11 @@ int main() {
                                 double steer_value;
                                 double throttle_value;
                                 double cost;
+                                double ref_v;
                                 std::vector<double> mpc_x_vals, mpc_y_vals;
 
-                                std::tie(steer_value, throttle_value, mpc_x_vals, mpc_y_vals, cost) = mpc.Solve(state, coeffs, x_vals.front(), x_vals.back());
+                                std::tie(steer_value, throttle_value, mpc_x_vals, mpc_y_vals, cost, ref_v) =
+                                    mpc.Solve(state, coeffs, x_vals.front(), x_vals.back());
 
                                 json msgJson;
                                 // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
@@ -139,7 +141,10 @@ int main() {
                                 msgJson["next_x"] = x_vals;
                                 msgJson["next_y"] = y_vals;
 
-                                std::cout << px << " " << py << " " << psi << " " << v << " "  << cost << " " << steer_value << " " << throttle_value << std::endl;
+                                std::cout << px << " " << py << " " << psi << " " << v << " "  << cost
+                                          << " " << steer_value << " " << throttle_value << " " << ref_v
+                                          << std::endl;
+
                                 auto msg = "42[\"steer\"," + msgJson.dump() + "]";
                                 //std::cout << msg << std::endl;
                                 // Latency

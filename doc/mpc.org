@@ -193,13 +193,14 @@ reset
 set terminal png size 640,480
 set title "Speed"
 set xlabel "Step"
-set yrange [0:30]
-set ytics 0,5,30
-plot 'data/first.data' using 0:($4*3600/1609.34) with lines title 'V, mph'
+set yrange [0:52]
+set ytics 0,10,52
+plot 'data/first.data' using 0:($4*3600/1609.34) with lines title 'V, mph', \
+     44.75 with lines title 'ref_v, mph'
 #+end_src
 
 #+results:
-[[file:images/speed1.png]]
+[[file:images/first_speed.png]]
 
 and the cost function at $\approx 1300$
 #+begin_src gnuplot :exports both :file images/first_cost.png
@@ -265,7 +266,8 @@ set title "Speed"
 set xlabel "Step"
 set yrange [0:60]
 set ytics 0,5,60
-plot 'data/second.data' using 0:($4*3600/1609.34) with lines title 'V, mph'
+plot 'data/second.data' using 0:($4*3600/1609.34) with lines title 'V, mph', \
+     44.75 with lines title 'ref_v, mph'
 #+end_src
 
 #+results:
@@ -329,7 +331,7 @@ plot 'data/third.data' using ($1):($2) with lines lw 5 title 'Road', \
 [[file:images/third_track.png]]
 
 
-Vehicle's speed oscillates near the reference value $\approx 45$ mph:
+Vehicle's speed oscillates below the reference value $\approx 72$ mph:
 #+begin_src gnuplot :exports both :file images/third_speed.png
 reset
 set terminal png size 640,480
@@ -337,7 +339,8 @@ set title "Speed"
 set xlabel "Step"
 set yrange [0:80]
 set ytics 0,10,80
-plot 'data/third.data' using 0:($4*3600/1609.34) with lines title 'V, mph'
+plot 'data/third.data' using 0:($4*3600/1609.34) with lines title 'V, mph', \
+     71.58 with lines title 'ref_v, mph'
 #+end_src
 
 #+results:
@@ -424,7 +427,7 @@ with the average squared curvature as the argument
 
 and
 \[
-\text{ref}_v = 50 - \frac{30}{1+\exp\{-5\cdot 10^4 (x-1.2\cdot {10^4})\}}
+\text{ref}_v = 50 - \frac{30}{1+\exp\{-5\cdot 10^4 \left(\bar{\kappa}-1.2\cdot 10^{-4}\right)\}}
 \]
 with 50 m/s (112 mph) maximal speed and 20 m/s (45 mph) speed in turns.
 Parameters $-5\cdot 10^4$ and $1.2\cdot {10^4}$ represent turning style:
@@ -466,9 +469,10 @@ reset
 set terminal png size 640,480
 set title "Speed"
 set xlabel "Step"
-set yrange [0:100]
-set ytics 0,10,100
-plot 'data/fourth.data' using 0:($4*3600/1609.34) with lines title 'V, mph'
+set yrange [0:130]
+set ytics 0,20,130
+plot 'data/fourth.data' using 0:($4*3600/1609.34) with lines title 'V, mph', \
+     'data/fourth.data' using 0:($8*3600/1609.34) with lines title 'ref_v, mph',
 #+end_src
 
 #+results:
@@ -517,4 +521,8 @@ With help of different sets of weight values $w_{.}$ and reference values it is 
 - driving with constant average speed with 0 acceleration change penalty and high penalty for steering angle changes
 - driving with high speed by increasing reference velocity and adjusting upper bounds for acceleration that prevents
   acceleration in turns
-- setting reference velocity based on the map or predicted horizon values results in human-like driving
+- setting reference velocity based on the map or predicted horizon values results in race-like driving
+  and possible to achieve speed of 100 mph for
+\[
+\text{ref}_v = 54 - \frac{28}{1+\exp\{-10^5 \left(\bar{\kappa}-1.2\cdot 10^{-4}\right)\}}
+\]

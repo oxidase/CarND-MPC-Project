@@ -144,8 +144,8 @@ public:
 MPC::MPC() {}
 MPC::~MPC() {}
 
-std::tuple<double, double, std::vector<double>, std::vector<double>, double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs,
-                                                                                        double minx, double maxx)
+std::tuple<double, double, std::vector<double>, std::vector<double>, double, double>
+MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs, double minx, double maxx)
 {
     bool ok = true;
     typedef CPPAD_TESTVECTOR(double) Dvector;
@@ -248,7 +248,6 @@ std::tuple<double, double, std::vector<double>, std::vector<double>, double> MPC
 
     curv2 /= (maxx - minx);
     ref_v = 50. - 30. / (1. + exp(-.5e5*(curv2-1.2e-4)));
-    //std::cout << "== curv " << curv2 << " " << ref_v << " (" << round(ref_v * 3600. /1609.34) << ")\n";
 
     // object that computes objective and constraints
     FG_eval fg_eval(coeffs);
@@ -282,11 +281,33 @@ std::tuple<double, double, std::vector<double>, std::vector<double>, double> MPC
     // Check some of the solution values
     ok &= solution.status == CppAD::ipopt::solve_result<Dvector>::success;
     if (!ok)
-        return {0., 0., std::vector<double>(), std::vector<double>(), std::numeric_limits<double>::quiet_NaN()};
+        return {0., 0., std::vector<double>(), std::vector<double>(), std::numeric_limits<double>::quiet_NaN(), ref_v};
+
+    auto curv_xy = [&solution](int i) {
+           auto dx = (solution.x[x_start + i + 1] - solution.x[x_start + i - 1]) / (2. * dt);
+           auto dy = (solution.x[y_start + i + 1] - solution.x[y_start + i - 1]) / (2. * dt);
+           auto d2x = (solution.x[x_start + i + 1] - 2. * solution.x[x_start + i] +  solution.x[x_start + i - 1]) / (dt * dt);
+           auto d2y = (solution.x[y_start + i + 1] - 2. * solution.x[y_start + i] +  solution.x[y_start + i - 1]) / (dt * dt);
+           return (dx * d2y - dy * d2x) / pow(dx * dx + dy * dy, 1.5);
+    };
+    double prev_curv = pow(curv_xy(1), 2.);
+    double curv2_xy = prev_curv * dt;
+    for (int i = 2; i < N - 1; ++i)
+    {
+        double curr_curv = pow(curv_xy(i), 2.);
+        curv2_xy += (curr_curv  + prev_curv) * dt / 2.;
+        prev_curv = curr_curv;
+    }
+    curv2_xy += prev_curv * dt;
+
+    curv2_xy /= (N * dt);
+    // ref_v = 54. - 28. / (1. + exp(-1e5*(curv2_xy-1.2e-4)));
+
 
     // Cost
     auto cost = solution.obj_value;
-    std::cerr << "Cost " << cost << " " << solution.x[delta_start] << " " << solution.x[a_start] << " " << maxx << " " << ncross << std::endl;
+    std::cerr << "Cost " << cost << " " << solution.x[delta_start] << " " << solution.x[a_start]
+              << " " << maxx << " " << ncross << " " << "curvature " << curv2 << " vs " << curv2_xy << "\n";
 
     std::vector<double> mpc_x_vals, mpc_y_vals;
     for (std::size_t i = 0; i < N; ++i)
@@ -296,5 +317,5 @@ std::tuple<double, double, std::vector<double>, std::vector<double>, double> MPC
     }
 
     // Return the first actuator values.
-    return {solution.x[delta_start + 1], solution.x[a_start + 1], mpc_x_vals, mpc_y_vals, cost};
+    return {solution.x[delta_start + 1], solution.x[a_start + 1], mpc_x_vals, mpc_y_vals, cost, ref_v};
 }
