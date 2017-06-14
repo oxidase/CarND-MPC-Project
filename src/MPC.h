@@ -20,6 +20,10 @@ public:
     // Return the first actuatotions.
     std::tuple<double, double, std::vector<double>, std::vector<double>, double, double>
     Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs, double minx, double maxx);
+
+    std::size_t latency_position;
+    double latency_offset;
+
 };
 
 #endif /* MPC_H */

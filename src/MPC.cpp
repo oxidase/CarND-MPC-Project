@@ -141,7 +141,11 @@ public:
 //
 // MPC class definition implementation.
 //
-MPC::MPC() {}
+MPC::MPC() {
+    const auto latency = 0.1; // in seconds
+    latency_position = static_cast<std::size_t>(latency / dt);
+    latency_offset = latency / dt - latency_position;
+}
 MPC::~MPC() {}
 
 std::tuple<double, double, std::vector<double>, std::vector<double>, double, double>
@@ -317,5 +321,9 @@ MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs, double minx, double ma
     }
 
     // Return the first actuator values.
-    return {solution.x[delta_start + 1], solution.x[a_start + 1], mpc_x_vals, mpc_y_vals, cost, ref_v};
+    auto delta = solution.x[delta_start + latency_position] +
+        (solution.x[delta_start + latency_position + 1] - solution.x[delta_start + latency_position]) * latency_offset;
+    auto acceleration = solution.x[a_start + latency_position] +
+        (solution.x[a_start + latency_position + 1] - solution.x[a_start + latency_position]) * latency_offset;
+    return {delta, acceleration, mpc_x_vals, mpc_y_vals, cost, ref_v};
 }

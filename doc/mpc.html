@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2017-06-10 Sat 14:00 -->
+<!-- 2017-06-15 Thu 01:02 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>CarND-MPC-Project project</title>
@@ -256,36 +256,36 @@ for the JavaScript code in this tag.
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents">
 <ul>
-<li><a href="#org05ee9f0">1. Kinematic Model</a></li>
-<li><a href="#org7c244e6">2. Kinematic model with errors (from lecture)</a>
+<li><a href="#org7183ea8">1. Kinematic Model</a></li>
+<li><a href="#org2fdf2e7">2. Kinematic model with errors (from lecture)</a>
 <ul>
-<li><a href="#orgfe1b7e4">2.1. Cross Track Error</a></li>
-<li><a href="#org0d43856">2.2. Orientation Error</a></li>
+<li><a href="#orgfe8e93c">2.1. Cross Track Error</a></li>
+<li><a href="#org94fe83f">2.2. Orientation Error</a></li>
 </ul>
 </li>
-<li><a href="#org7efbd76">3. Model implementation</a></li>
-<li><a href="#org9eab35c">4. One step calculation of the reference track</a>
+<li><a href="#org1504bf1">3. Model implementation</a></li>
+<li><a href="#org02b0fcf">4. One step calculation of the reference track</a>
 <ul>
-<li><a href="#orgb126d5a">4.1. Received step data</a></li>
-<li><a href="#org1886d0e">4.2. Transformed points to the local vehicle's reference systems</a></li>
-<li><a href="#org60eae0c">4.3. Fitting a cubic polynomial</a></li>
+<li><a href="#org2020b27">4.1. Received step data</a></li>
+<li><a href="#org8b987d3">4.2. Transformed points to the local vehicle's reference systems</a></li>
+<li><a href="#org43b42cf">4.3. Fitting a cubic polynomial</a></li>
 </ul>
 </li>
-<li><a href="#org03c29b2">5. Simulation results</a>
+<li><a href="#orga0742b1">5. Simulation results</a>
 <ul>
-<li><a href="#org537a66d">5.1. First try with \(v_{\text{ref}}=20\) m/s and \(V_{\text{max}}=26.3\) mph</a></li>
-<li><a href="#org50d75e7">5.2. Second try with \(v_{\text{ref}}=20\) m/s and average speed 45 mph</a></li>
-<li><a href="#orgc036570">5.3. Third try with \(v_{\text{ref}}=32\) m/s and top speed \(72\) mph</a></li>
-<li><a href="#orgb926065">5.4. Fourth try with maximal speed 112 mph</a></li>
+<li><a href="#orgebb5c1f">5.1. First try with \(v_{\text{ref}}=20\) m/s and \(V_{\text{max}}=26.3\) mph</a></li>
+<li><a href="#org80d3839">5.2. Second try with \(v_{\text{ref}}=20\) m/s and average speed 45 mph</a></li>
+<li><a href="#orgefe997f">5.3. Third try with \(v_{\text{ref}}=32\) m/s and top speed \(72\) mph</a></li>
+<li><a href="#orga637226">5.4. Fourth try with maximal speed 112 mph</a></li>
 </ul>
 </li>
-<li><a href="#orgb2c056e">6. Summary</a></li>
+<li><a href="#orge2206d2">6. Summary</a></li>
 </ul>
 </div>
 </div>
 
-<div id="outline-container-org05ee9f0" class="outline-2">
-<h2 id="org05ee9f0"><span class="section-number-2">1</span> Kinematic Model</h2>
+<div id="outline-container-org7183ea8" class="outline-2">
+<h2 id="org7183ea8"><span class="section-number-2">1</span> Kinematic Model</h2>
 <div class="outline-text-2" id="text-1">
 <p>
 State vector of the model
@@ -320,8 +320,8 @@ v_{t+1}&=&\displaystyle v_t+a_t dt
 </div>
 </div>
 
-<div id="outline-container-org7c244e6" class="outline-2">
-<h2 id="org7c244e6"><span class="section-number-2">2</span> Kinematic model with errors (from lecture)</h2>
+<div id="outline-container-org2fdf2e7" class="outline-2">
+<h2 id="org2fdf2e7"><span class="section-number-2">2</span> Kinematic model with errors (from lecture)</h2>
 <div class="outline-text-2" id="text-2">
 <p>
 The state of the model
@@ -332,8 +332,8 @@ is extended with \(cte\) — the cross-track error and \(e\psi\) — the orienta
 </p>
 </div>
 
-<div id="outline-container-orgfe1b7e4" class="outline-3">
-<h3 id="orgfe1b7e4"><span class="section-number-3">2.1</span> Cross Track Error</h3>
+<div id="outline-container-orgfe8e93c" class="outline-3">
+<h3 id="orgfe8e93c"><span class="section-number-3">2.1</span> Cross Track Error</h3>
 <div class="outline-text-3" id="text-2-1">
 <p>
 The error between the center of the road and the vehicle's position is the cross track error:
@@ -367,8 +367,8 @@ This can be broken up into two parts:
 </div>
 </div>
 
-<div id="outline-container-org0d43856" class="outline-3">
-<h3 id="org0d43856"><span class="section-number-3">2.2</span> Orientation Error</h3>
+<div id="outline-container-org94fe83f" class="outline-3">
+<h3 id="org94fe83f"><span class="section-number-3">2.2</span> Orientation Error</h3>
 <div class="outline-text-3" id="text-2-2">
 <p>
 The orientation error:
@@ -399,8 +399,8 @@ Similarly to the cross track error this can be interpreted as two parts:
 </div>
 </div>
 
-<div id="outline-container-org7efbd76" class="outline-2">
-<h2 id="org7efbd76"><span class="section-number-2">3</span> Model implementation</h2>
+<div id="outline-container-org1504bf1" class="outline-2">
+<h2 id="org1504bf1"><span class="section-number-2">3</span> Model implementation</h2>
 <div class="outline-text-2" id="text-3">
 <p>
 The vehicle model is implemented in <a href="https://github.com/udacity/CarND-MPC-Quizzes/blob/master/mpc_to_line/solution/MPC.cpp">https://github.com/udacity/CarND-MPC-Quizzes/blob/master/mpc_to_line/solution/MPC.cpp</a>
@@ -417,15 +417,19 @@ The optimizer is IPOPT with CppAD symbolic differentiation procedure.
 The state variables are unbounded, steering angles \(\delta\) lies in range [-25, 25] degrees,
 acceleration values are in range [-1,1] or [-1,0.25] depending on the road complexity.
 </p>
+
+<p>
+The actuator values \(\delta\) and \(a\) are linearly interpolated at the time point \(t_{\text{now}}+0.1\) seconds
+to compensate the controller 100 milliseconds latency.
+</p>
 </div>
 </div>
 
-
-<div id="outline-container-org9eab35c" class="outline-2">
-<h2 id="org9eab35c"><span class="section-number-2">4</span> One step calculation of the reference track</h2>
+<div id="outline-container-org02b0fcf" class="outline-2">
+<h2 id="org02b0fcf"><span class="section-number-2">4</span> One step calculation of the reference track</h2>
 <div class="outline-text-2" id="text-4">
-</div><div id="outline-container-orgb126d5a" class="outline-3">
-<h3 id="orgb126d5a"><span class="section-number-3">4.1</span> Received step data</h3>
+</div><div id="outline-container-org2020b27" class="outline-3">
+<h3 id="org2020b27"><span class="section-number-3">4.1</span> Received step data</h3>
 <div class="outline-text-3" id="text-4-1">
 <div class="org-src-container">
 <pre class="src src-R">ptsx <span style="color: #008b8b;">&lt;-</span> c(-32.161729999999999, -43.491729999999997, -61.090000000000003, -78.291719999999998, -93.050020000000004, -107.7717)
@@ -448,8 +452,8 @@ arrows(px, py, px + 10 * cos(psi), py + 10 * sin(psi), col=<span style="color: #
 </div>
 </div>
 </div>
-<div id="outline-container-org1886d0e" class="outline-3">
-<h3 id="org1886d0e"><span class="section-number-3">4.2</span> Transformed points to the local vehicle's reference systems</h3>
+<div id="outline-container-org8b987d3" class="outline-3">
+<h3 id="org8b987d3"><span class="section-number-3">4.2</span> Transformed points to the local vehicle's reference systems</h3>
 <div class="outline-text-3" id="text-4-2">
 <div class="org-src-container">
 <pre class="src src-R">xy <span style="color: #008b8b;">&lt;-</span> mapply(<span style="color: #a020f0;">function</span>(x, y) c(x*cos(psi) + y*sin(psi), -x*sin(psi) + y*cos(psi)), x = ptsx - px, y = ptsy - py)
@@ -479,8 +483,8 @@ paste(c(<span style="color: #8b2252;">"Y: "</span>, xy[2,]) ,collapse=<span styl
 </div>
 </div>
 
-<div id="outline-container-org60eae0c" class="outline-3">
-<h3 id="org60eae0c"><span class="section-number-3">4.3</span> Fitting a cubic polynomial</h3>
+<div id="outline-container-org43b42cf" class="outline-3">
+<h3 id="org43b42cf"><span class="section-number-3">4.3</span> Fitting a cubic polynomial</h3>
 <div class="outline-text-3" id="text-4-3">
 <div class="org-src-container">
 <pre class="src src-R">coeffs <span style="color: #008b8b;">&lt;-</span> lm(formula = xy[2,] ~ xy[1,] + I(xy[1,]^2) + I(xy[1,]^3))
@@ -518,11 +522,11 @@ arrows(0, 0, 10, 0, col=<span style="color: #8b2252;">'red'</span>)
 </div>
 
 
-<div id="outline-container-org03c29b2" class="outline-2">
-<h2 id="org03c29b2"><span class="section-number-2">5</span> Simulation results</h2>
+<div id="outline-container-orga0742b1" class="outline-2">
+<h2 id="orga0742b1"><span class="section-number-2">5</span> Simulation results</h2>
 <div class="outline-text-2" id="text-5">
-</div><div id="outline-container-org537a66d" class="outline-3">
-<h3 id="org537a66d"><span class="section-number-3">5.1</span> First try with \(v_{\text{ref}}=20\) m/s and \(V_{\text{max}}=26.3\) mph</h3>
+</div><div id="outline-container-orgebb5c1f" class="outline-3">
+<h3 id="orgebb5c1f"><span class="section-number-3">5.1</span> First try with \(v_{\text{ref}}=20\) m/s and \(V_{\text{max}}=26.3\) mph</h3>
 <div class="outline-text-3" id="text-5-1">
 <p>
 In the first both activation values and changes in activation values are penalized with weight values 100, so
@@ -618,22 +622,14 @@ so acceleration value \(a\) is almost constant at \(0.225\)
 </div>
 
 <p>
-  <a href="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/first.mp4">Link to video file</a>
+<a href="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/first.mp4">Link to video file</a>
 </p>
-<p>
-  <center>
-    <video width="640" height="480" controls>
-      <source src="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/first.mp4" type="video/mp4">
-      Your browser does not support the video tag.
-    </video>
-  </center>
-</p>
+<p><center><video width="640" height="480" controls><source src="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/first.mp4" type="video/mp4">Your browser does not support the video tag.</video></center><p>
 </div>
 </div>
 
-
-<div id="outline-container-org50d75e7" class="outline-3">
-<h3 id="org50d75e7"><span class="section-number-3">5.2</span> Second try with \(v_{\text{ref}}=20\) m/s and average speed 45 mph</h3>
+<div id="outline-container-org80d3839" class="outline-3">
+<h3 id="org80d3839"><span class="section-number-3">5.2</span> Second try with \(v_{\text{ref}}=20\) m/s and average speed 45 mph</h3>
 <div class="outline-text-3" id="text-5-2">
 <p>
 In this try change in the acceleration is not penalized but change of the steering angle is penalized at most,
@@ -728,22 +724,16 @@ Acceleration value \(a\) shows a bang-bang controller behavior
 </div>
 
 <p>
-  <a href="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/second.mp4">Link to video file</a>
+<a href="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/second.mp4">Link to video file</a>
 </p>
-<p>
-  <center>
-    <video width="640" height="480" controls>
-      <source src="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/second.mp4" type="video/mp4">
-      Your browser does not support the video tag.
-    </video>
-  </center>
-</p>
+
+<p><center><video width="640" height="480" controls><source src="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/second.mp4" type="video/mp4">Your browser does not support the video tag.</video></center><p>
 </div>
 </div>
 
 
-<div id="outline-container-orgc036570" class="outline-3">
-<h3 id="orgc036570"><span class="section-number-3">5.3</span> Third try with \(v_{\text{ref}}=32\) m/s and top speed \(72\) mph</h3>
+<div id="outline-container-orgefe997f" class="outline-3">
+<h3 id="orgefe997f"><span class="section-number-3">5.3</span> Third try with \(v_{\text{ref}}=32\) m/s and top speed \(72\) mph</h3>
 <div class="outline-text-3" id="text-5-3">
 <p>
 In this try change in the acceleration is not penalized but change of the steering angle is penalized at most,
@@ -846,22 +836,16 @@ the vehicle performs fast-slow acceleration cycles with sporadic short breaking.
 </div>
 
 <p>
-  <a href="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/third.mp4">Link to video file</a>
+<a href="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/third.mp4">Link to video file</a>
 </p>
-<p>
-  <center>
-    <video width="640" height="480" controls>
-      <source src="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/third.mp4" type="video/mp4">
-      Your browser does not support the video tag.
-    </video>
-  </center>
-</p>
+
+<p><center><video width="640" height="480" controls><source src="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/third.mp4" type="video/mp4">Your browser does not support the video tag.</video></center><p>
 </div>
 </div>
 
 
-<div id="outline-container-orgb926065" class="outline-3">
-<h3 id="orgb926065"><span class="section-number-3">5.4</span> Fourth try with maximal speed 112 mph</h3>
+<div id="outline-container-orga637226" class="outline-3">
+<h3 id="orga637226"><span class="section-number-3">5.4</span> Fourth try with maximal speed 112 mph</h3>
 <div class="outline-text-3" id="text-5-4">
 <p>
 Another possibility is to control the reference velocity by the curvature of the
@@ -910,7 +894,7 @@ Parameters \(-5\cdot 10^4\) and \(1.2\cdot {10^4}\) represent turning style:
 </ul>
 
 <div class="org-src-container">
-<pre class="src src-gnuplot" id="org1adcd4b"><span style="color: #008b8b;">reset</span>
+<pre class="src src-gnuplot" id="orgbf7bc55"><span style="color: #008b8b;">reset</span>
 <span style="color: #008b8b;">set</span> terminal png size 640,480
 <span style="color: #008b8b;">set</span> <span style="color: #228b22;">title</span> <span style="color: #8b2252;">"Reference velocity"</span>
 <span style="color: #008b8b;">set</span> xlabel <span style="color: #8b2252;">"k\342\200\276"</span>
@@ -1013,23 +997,17 @@ with shorter breaking segments.
 </div>
 
 <p>
-  <a href="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/fourth.mp4">Link to video file</a>
+<a href="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/fourth.mp4">Link to video file</a>
 </p>
-<p>
-  <center>
-    <video width="640" height="480" controls>
-      <source src="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/fourth.mp4" type="video/mp4">
-      Your browser does not support the video tag.
-    </video>
-  </center>
-</p>
+
+<p><center><video width="640" height="480" controls><source src="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/fourth.mp4" type="video/mp4">Your browser does not support the video tag.</video></center><p>
 </div>
 </div>
 </div>
 
 
-<div id="outline-container-orgb2c056e" class="outline-2">
-<h2 id="orgb2c056e"><span class="section-number-2">6</span> Summary</h2>
+<div id="outline-container-orge2206d2" class="outline-2">
+<h2 id="orge2206d2"><span class="section-number-2">6</span> Summary</h2>
 <div class="outline-text-2" id="text-6">
 <p>
 With help of different sets of weight values \(w_{.}\) and reference values it is possible to make different driving styles:
@@ -1041,27 +1019,21 @@ With help of different sets of weight values \(w_{.}\) and reference values it i
 <li>driving with high speed by increasing reference velocity and adjusting upper bounds for acceleration that prevents
 acceleration in turns</li>
 <li>setting reference velocity based on the map or predicted horizon values results in race-like driving
-  and possible to achieve speed of 100 mph for</li>
+and possible to achieve speed of 100 mph for</li>
 </ul>
 <p>
-  \[
-  \text{ref}_v = 54 - \frac{28}{1+\exp\{-10^5 \left(\bar{\kappa}-1.2\cdot 10^{-4}\right)\}}
-  \]
+\[
+\text{ref}_v = 54 - \frac{28}{1+\exp\{-10^5 \left(\bar{\kappa}-1.2\cdot 10^{-4}\right)\}}
+\]
 </p>
-<p>
-  <center>
-    <video width="640" height="480" controls>
-      <source src="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/fifth.mp4" type="video/mp4">
-      Your browser does not support the video tag.
-    </video>
-  </center>
-</p>
+
+<p><center><video width="640" height="480" controls><source src="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/fifth.mp4" type="video/mp4">Your browser does not support the video tag.</video></center><p>
 </div>
 </div>
 </div>
 <div id="postamble" class="status">
 <p class="author">Author: Michael Krasnyk</p>
-<p class="date">Created: 2017-06-10 Sat 14:00</p>
+<p class="date">Created: 2017-06-15 Thu 01:02</p>
 <p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
 </body>

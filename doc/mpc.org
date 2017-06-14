@@ -96,6 +96,8 @@ The optimizer is IPOPT with CppAD symbolic differentiation procedure.
 The state variables are unbounded, steering angles $\delta$ lies in range [-25, 25] degrees,
 acceleration values are in range [-1,1] or [-1,0.25] depending on the road complexity.
 
+The actuator values $\delta$ and $a$ are linearly interpolated at the time point $t_{\text{now}}+0.1$ seconds
+to compensate the controller 100 milliseconds latency.
 
 * One step calculation of the reference track
 
@@ -232,7 +234,7 @@ plot 'data/first.data' using 0:($6) with lines title 'delta', \
 [[file:images/actuators1.png]]
 
 [[https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/first.mp4][Link to video file]]
-
+#+HTML:<p><center><video width="640" height="480" controls><source src="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/first.mp4" type="video/mp4">Your browser does not support the video tag.</video></center><p>
 
 ** Second try with $v_{\text{ref}}=20$ m/s and average speed 45 mph
 
@@ -303,6 +305,8 @@ plot 'data/second.data' using 0:($6) with lines title 'delta', \
 [[file:images/second_actuators.png]]
 
 [[https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/second.mp4][Link to video file]]
+
+#+HTML:<p><center><video width="640" height="480" controls><source src="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/second.mp4" type="video/mp4">Your browser does not support the video tag.</video></center><p>
 
 
 ** Third try with $v_{\text{ref}}=32$ m/s and top speed $72$ mph
@@ -380,6 +384,8 @@ plot 'data/third.data' using 0:($6) with lines title 'delta', \
 [[file:images/third_actuators.png]]
 
 [[https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/third.mp4][Link to video file]]
+
+#+HTML:<p><center><video width="640" height="480" controls><source src="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/third.mp4" type="video/mp4">Your browser does not support the video tag.</video></center><p>
 
 
 ** Fourth try with maximal speed 112 mph
@@ -512,6 +518,8 @@ plot 'data/fourth.data' using 0:($6) with lines title 'delta', \
 
 [[https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/fourth.mp4][Link to video file]]
 
+#+HTML:<p><center><video width="640" height="480" controls><source src="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/fourth.mp4" type="video/mp4">Your browser does not support the video tag.</video></center><p>
+
 
 * Summary
 
@@ -526,3 +534,5 @@ With help of different sets of weight values $w_{.}$ and reference values it is 
 \[
 \text{ref}_v = 54 - \frac{28}{1+\exp\{-10^5 \left(\bar{\kappa}-1.2\cdot 10^{-4}\right)\}}
 \]
+
+#+HTML:<p><center><video width="640" height="480" controls><source src="https://raw.githubusercontent.com/oxidase/CarND-MPC-Project/master/doc/video/fifth.mp4" type="video/mp4">Your browser does not support the video tag.</video></center><p>
